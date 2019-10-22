@@ -1,0 +1,94 @@
+package com.zl.opengl.filters;
+
+import android.content.Context;
+
+import com.zl.opengl.utils.BufferHelper;
+import com.zl.opengl.utils.ShaderHelper;
+import com.zl.opengl.utils.TextResourceReader;
+
+import java.nio.FloatBuffer;
+
+import static android.opengl.GLES20.*;
+
+public abstract class BaseFilter {
+
+    private int mVertexSourceId;
+    private int mFragmentSourceId;
+    protected FloatBuffer vetexData;
+    protected FloatBuffer textureData;
+    protected int vPosition;
+    protected int vCoord;
+    protected int vMatrix;
+    protected int vTexture;
+    protected int mWidth;
+    protected int mHeight;
+    protected int mProgramId;
+
+    public BaseFilter(Context context, int vertexSourceId, int fragmentSourceId) {
+        mVertexSourceId = vertexSourceId;
+        mFragmentSourceId = fragmentSourceId;
+        float[] VETREX = {
+                -1.0f, -1.0f,
+                1.0f, -1.0f,
+                -1.0f, 1.0f,
+                1.0f, 1.0f,
+        };
+
+        vetexData = BufferHelper.getFloatBuffer(VETREX);
+        float[] TEXTURE = {
+                0.0f, 1.0f,
+                1.0f, 1.0f,
+                0.0f, 0.0f,
+                1.0f, 0.0f,
+        };
+
+        textureData = BufferHelper.getFloatBuffer(TEXTURE);
+
+        init(context);
+    }
+
+    private void init(Context context) {
+        //顶点着色器代码
+        String vertexSource = TextResourceReader.readTextFileFromResource(context, mVertexSourceId);
+        //片元着色器代码
+        String fragmentSource = TextResourceReader.readTextFileFromResource(context, mFragmentSourceId);
+
+        //编译获得顶点着色器id
+        int vetexShaderId = ShaderHelper.compileVetexShader(vertexSource);
+        int fragmentShaderId = ShaderHelper.compileFragmentShader(fragmentSource);
+        //获取程序id
+
+        mProgramId = ShaderHelper.linkProgram(vetexShaderId, fragmentShaderId);
+        glDeleteShader(vetexShaderId);
+        glDeleteShader(fragmentShaderId);
+        //通过程序id获取索引
+        vPosition = glGetAttribLocation(mProgramId, "vPosition");
+        vCoord = glGetAttribLocation(mProgramId, "vCoord");
+        vMatrix = glGetUniformLocation(mProgramId, "vMatrix");
+        //片元
+        vTexture = glGetUniformLocation(mProgramId, "vTexture");
+
+    }
+
+    public void release() {
+        glDeleteProgram(mProgramId);
+    }
+
+    public void onReady(int width, int height) {
+        mWidth = width;
+        mHeight = height;
+    }
+
+    public int onDrawFrame(int textureID) {
+        //1、设置视窗
+        glViewport(0, 0, mWidth, mHeight);
+        //2、使用着色器程序
+        glUseProgram(mProgramId);
+        //渲染  传值
+        //1、顶点数据
+        vetexData.position(0);
+        glVertexAttribPointer(vPosition, 2, GL_FLOAT, false, 0, vetexData);
+
+        //激活
+        glEnableVertexAttribArray(vPosition);
+       

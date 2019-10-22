@@ -1,0 +1,66 @@
+package com.zl.opengl.filters;
+
+import android.content.Context;
+import android.opengl.GLES11Ext;
+import android.opengl.GLES20;
+
+import com.zl.opengl.R;
+import com.zl.opengl.utils.TextureHelper;
+
+import static android.opengl.GLES20.*;
+
+public class CamerFilter extends BaseFilter {
+    private int[] mFrameBuffers;
+    private float[] matrix;
+    private int[] mFrameBufferTextures;
+
+    public CamerFilter(Context context) {
+        super(context, R.raw.camera_vertex, R.raw.camera_fragment);
+    }
+
+    @Override
+    public void release() {
+        super.release();
+    }
+
+    @Override
+    public void onReady(int width, int height) {
+        super.onReady(width, height);
+        //FBO
+        //1、创建fbo
+        mFrameBuffers = new int[1];
+        GLES20.glGenFramebuffers(mFrameBuffers.length,mFrameBuffers,0);
+        //2、创建属于FBO的纹理
+        mFrameBufferTextures = new int[1];
+        TextureHelper.getTextures(mFrameBufferTextures);
+
+        //3、让fbo与纹理发生关系
+        //生成2d纹理图像
+        //目标  2d纹理 + 等级 + 格式 + 宽 + 高 + 边界 + 格式 + 数据类型（byte）+ 像素
+        glBindTexture(GL_TEXTURE_2D, mFrameBufferTextures[0]);
+        glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,null);
+
+        //int target  fbo纹理目标
+        //int attachment
+        //int textarget
+        //int  texture
+        //int
+
+        glBindFramebuffer(GL_FRAMEBUFFER,mFrameBuffers[0]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D, mFrameBufferTextures[0],0);
+
+        //解绑
+        glBindFramebuffer(GL_FRAMEBUFFER,0);
+        glBindTexture(GL_TEXTURE_2D,0);
+
+    }
+
+    @Override
+    public int onDrawFrame(int textureID) {
+        //1， 设置视窗
+        glViewport(0, 0, mWidth, mHeight);
+        //这里渲染到FBO缓存中
+        glBindFramebuffer(GL_FRAMEBUFFER,mFrameBuffers[0]);
+
+        //2，使用着色器程序
+        glUseProgram(mProgr
